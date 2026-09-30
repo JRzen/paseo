@@ -1122,6 +1122,9 @@ export const es: TranslationResources = {
   },
   sidebar: {
     display: {
+      tabRows: {
+        label: "Pestañas",
+      },
       trigger: "Preferencias de visualización",
       heading: "Visualización",
       grouping: {
@@ -1232,6 +1235,11 @@ export const es: TranslationResources = {
       },
     },
     workspace: {
+      tabs: {
+        open: "Abrir {{name}}",
+        expand: "Mostrar pestañas",
+        collapse: "Ocultar pestañas",
+      },
       status: {
         serviceRunning: "Servicio {{name}} en ejecución",
         serviceUnhealthy: "Servicio {{name}} con fallos",

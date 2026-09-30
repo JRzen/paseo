@@ -1086,6 +1086,9 @@ export const ar: TranslationResources = {
   },
   sidebar: {
     display: {
+      tabRows: {
+        label: "علامات التبويب",
+      },
       trigger: "تفضيلات العرض",
       heading: "العرض",
       grouping: {
@@ -1196,6 +1199,11 @@ export const ar: TranslationResources = {
       },
     },
     workspace: {
+      tabs: {
+        open: "فتح {{name}}",
+        expand: "إظهار علامات التبويب",
+        collapse: "إخفاء علامات التبويب",
+      },
       status: {
         serviceRunning: "الخدمة {{name}} قيد التشغيل",
         serviceUnhealthy: "الخدمة {{name}} غير سليمة",

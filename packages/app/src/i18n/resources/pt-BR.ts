@@ -1112,6 +1112,9 @@ export const ptBR: TranslationResources = {
   },
   sidebar: {
     display: {
+      tabRows: {
+        label: "Abas",
+      },
       trigger: "Preferências de exibição",
       heading: "Exibição",
       grouping: {
@@ -1222,6 +1225,11 @@ export const ptBR: TranslationResources = {
       },
     },
     workspace: {
+      tabs: {
+        open: "Abrir {{name}}",
+        expand: "Mostrar abas",
+        collapse: "Ocultar abas",
+      },
       status: {
         serviceRunning: "Serviço {{name}} em execução",
         serviceUnhealthy: "Serviço {{name}} com falha",
