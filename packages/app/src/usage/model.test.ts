@@ -7,6 +7,8 @@ import {
   resolveUsagePill,
   resolveUsageRefresh,
   resolveUsageView,
+  selectUsageBars,
+  type UsageHostGroup,
   type UsageQueryState,
 } from "./model";
 import type { UsageReportEntry, UsageWindow } from "./types";
@@ -207,5 +209,76 @@ describe("replaceReport", () => {
 
   it("drops a report the daemon no longer knows", () => {
     expect(replaceReport([alpha, beta], alpha.id, null)).toEqual([beta]);
+  });
+});
+
+describe("selectUsageBars", () => {
+  const session = (window: Partial<UsageWindow>): UsageWindow =>
+    ({ id: "session", label: "Session", headline: true, ...window }) as UsageWindow;
+  const host = (serverId: string, reports: UsageReportEntry[]): UsageHostGroup => ({
+    serverId,
+    label: serverId,
+    view: { kind: "ready", reports, isRefreshing: false },
+  });
+
+  it("colours each bar by the Usage screen's rule", () => {
+    const bars = selectUsageBars([
+      host("srv", [
+        entry({ sourceId: "calm", windows: [session({ usedPct: 42 })] }),
+        entry({ sourceId: "busy", windows: [session({ usedPct: 75 })] }),
+        entry({ sourceId: "full", windows: [session({ usedPct: 95 })] }),
+        entry({ sourceId: "told", windows: [session({ usedPct: 10, tone: "ok" })] }),
+      ]),
+    ]);
+    expect(bars.map((bar) => [bar.usedPct, bar.tone])).toEqual([
+      [42, "default"],
+      [75, "warning"],
+      [95, "danger"],
+      [10, "ok"],
+    ]);
+    expect(bars[0]?.label).toBe("Fixture source · Session 42%");
+  });
+
+  it("reads remaining-percent windows and clamps the fill", () => {
+    const bars = selectUsageBars([
+      host("srv", [
+        entry({ sourceId: "a", windows: [session({ remainingPct: 30 })] }),
+        entry({ sourceId: "b", windows: [session({ usedPct: 130 })] }),
+      ]),
+    ]);
+    expect(bars.map((bar) => bar.usedPct)).toEqual([70, 100]);
+  });
+
+  it("draws every window with a percentage, in the report's order", () => {
+    const weekly = { id: "weekly", label: "Weekly", usedPct: 80 } as UsageWindow;
+    const credits = { id: "credits", label: "Credits" } as UsageWindow;
+    const bars = selectUsageBars([
+      host("srv", [entry({ windows: [session({ usedPct: 20 }), weekly, credits] })]),
+    ]);
+    expect(bars.map((bar) => [bar.label, bar.tone])).toEqual([
+      ["Fixture source · Session 20%", "default"],
+      ["Fixture source · Weekly 80%", "warning"],
+    ]);
+    expect(new Set(bars.map((bar) => bar.key)).size).toBe(2);
+  });
+
+  it("skips reports with no percentages and hosts that are not ready", () => {
+    const bars = selectUsageBars([
+      host("srv", [entry({ sourceId: "plan-only", planLabel: "Pro" })]),
+      { serverId: "slow", label: "slow", view: { kind: "loading" } },
+    ]);
+    expect(bars).toEqual([]);
+  });
+
+  it("names the host only when more than one host is reporting", () => {
+    const bars = selectUsageBars([
+      host("laptop", [entry({ windows: [session({ usedPct: 1 })] })]),
+      host("server", [entry({ windows: [session({ usedPct: 2 })] })]),
+    ]);
+    expect(bars.map((bar) => bar.label)).toEqual([
+      "laptop · Fixture source · Session 1%",
+      "server · Fixture source · Session 2%",
+    ]);
+    expect(new Set(bars.map((bar) => bar.key)).size).toBe(2);
   });
 });

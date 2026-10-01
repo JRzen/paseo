@@ -28,6 +28,7 @@ import { SidebarHelpMenu } from "@/components/sidebar/sidebar-help-menu";
 import { SidebarResizeHandle } from "@/components/sidebar-resize-handle";
 import { Shortcut } from "@/components/ui/shortcut";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SidebarUsageBars } from "@/usage";
 import { HEADER_INNER_HEIGHT, useIsCompactFormFactor } from "@/constants/layout";
 import { useOpenAddProject } from "@/hooks/use-open-add-project";
 import { useImportSession } from "@/hooks/use-import-session";
@@ -430,14 +431,18 @@ function SidebarHostPicker({
   );
 }
 
-function SidebarUsageButton({ theme }: { theme: SidebarTheme }) {
-  const { t } = useTranslation();
+function useOpenUsage(): () => void {
   const isCompactLayout = useIsCompactFormFactor();
   const showMobileAgent = usePanelStore((state) => state.showMobileAgent);
-  const handlePress = useCallback(() => {
+  return useCallback(() => {
     if (isCompactLayout) showMobileAgent();
     router.push(buildUsageRoute());
   }, [isCompactLayout, showMobileAgent]);
+}
+
+function SidebarUsageButton({ theme }: { theme: SidebarTheme }) {
+  const { t } = useTranslation();
+  const handlePress = useOpenUsage();
   return (
     <FooterIconButton
       onPress={handlePress}
@@ -489,39 +494,43 @@ function SidebarFooter({
 }) {
   const newAgentKeys = useShortcutKeys("new-agent");
   const settingsKeys = useShortcutKeys("toggle-settings");
+  const openUsage = useOpenUsage();
 
   return (
-    <View style={styles.sidebarFooter}>
-      <FooterAddProjectButton
-        onPress={handleOpenProject}
-        label={labels.addProject}
-        shortcutKeys={newAgentKeys}
-        theme={theme}
-      />
-      <View style={styles.footerIconRow}>
-        <SidebarHostPicker
-          theme={theme}
-          label={labels.hosts}
-          onAddHost={handleAddHost}
-          onOpenHostSettings={handleOpenHostSettings}
-        />
-        <FooterIconButton
-          onPress={handleImportSession}
-          testID="sidebar-import-session"
-          label={labels.importSession}
-          icon={Import}
+    <View style={styles.sidebarFooterContainer}>
+      <SidebarUsageBars onPress={openUsage} />
+      <View style={styles.sidebarFooter}>
+        <FooterAddProjectButton
+          onPress={handleOpenProject}
+          label={labels.addProject}
+          shortcutKeys={newAgentKeys}
           theme={theme}
         />
-        <SidebarUsageButton theme={theme} />
-        <SidebarHelpMenu />
-        <FooterIconButton
-          onPress={handleSettings}
-          testID="sidebar-settings"
-          label={labels.settings}
-          icon={Settings}
-          shortcutKeys={settingsKeys}
-          theme={theme}
-        />
+        <View style={styles.footerIconRow}>
+          <SidebarHostPicker
+            theme={theme}
+            label={labels.hosts}
+            onAddHost={handleAddHost}
+            onOpenHostSettings={handleOpenHostSettings}
+          />
+          <FooterIconButton
+            onPress={handleImportSession}
+            testID="sidebar-import-session"
+            label={labels.importSession}
+            icon={Import}
+            theme={theme}
+          />
+          <SidebarUsageButton theme={theme} />
+          <SidebarHelpMenu />
+          <FooterIconButton
+            onPress={handleSettings}
+            testID="sidebar-settings"
+            label={labels.settings}
+            icon={Settings}
+            shortcutKeys={settingsKeys}
+            theme={theme}
+          />
+        </View>
       </View>
     </View>
   );
@@ -953,14 +962,18 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
     fontWeight: theme.fontWeight.medium,
   },
+  // The border sits on the container, not the button row, so the usage bars read as part of the
+  // footer rather than as the last thing in the list above it.
+  sidebarFooterContainer: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
   sidebarFooter: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[2],
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
   footerIconRow: {
     flexDirection: "row",

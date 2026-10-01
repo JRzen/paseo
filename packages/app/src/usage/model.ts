@@ -1,6 +1,8 @@
 import { formatCompactTimeAgoAsProse } from "@/utils/time";
 import { usageCopy } from "./copy";
-import type { UsageReport, UsageReportEntry, UsageView, UsageWindow } from "./types";
+import { clampPct, formatPct } from "./format";
+import { deriveTone } from "./tone";
+import type { UsageReport, UsageReportEntry, UsageTone, UsageView, UsageWindow } from "./types";
 
 export function usedPercent(window: UsageWindow): number | null {
   if (window.usedPct != null) return window.usedPct;
@@ -123,4 +125,44 @@ export function groupUsageByHost(
         query: queries.get(host.serverId),
       }),
     }));
+}
+
+export interface UsageBar {
+  /** Host, report and window, so a source's session and weekly bars never collide. */
+  key: string;
+  /** Names the bar where it has no visible label: "Claude · Session 42%". */
+  label: string;
+  /** Clamped to 0–100, ready to size the fill. */
+  usedPct: number;
+  /** The same rule the Usage screen's bars use: the source's tone, else the derived one. */
+  tone: UsageTone;
+}
+
+/**
+ * One bar per usage window with a percentage — session, weekly and so on — for every report
+ * across every host that has reported, in the order the Usage screen lists them. Hosts still
+ * loading, failed or unsupported contribute nothing rather than a placeholder: the strip is a
+ * glance, and the Usage screen is where those states are explained.
+ */
+export function selectUsageBars(groups: readonly UsageHostGroup[]): UsageBar[] {
+  const readyGroups = groups.filter((group) => group.view.kind === "ready");
+  const nameHosts = readyGroups.length > 1;
+  const bars: UsageBar[] = [];
+  for (const group of readyGroups) {
+    if (group.view.kind !== "ready") continue;
+    for (const entry of group.view.reports) {
+      const source = nameHosts ? `${group.label} · ${entry.sourceLabel}` : entry.sourceLabel;
+      entry.report.windows.forEach((window, index) => {
+        const percent = usedPercent(window);
+        if (percent == null) return;
+        bars.push({
+          key: `${group.serverId}:${entry.id}:${window.id ?? index}`,
+          label: `${source} · ${window.label} ${formatPct(percent)}`,
+          usedPct: clampPct(percent),
+          tone: window.tone ?? deriveTone(percent),
+        });
+      });
+    }
+  }
+  return bars;
 }

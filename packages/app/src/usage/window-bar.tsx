@@ -19,15 +19,25 @@ function fillToneStyle(tone: UsageTone) {
   }
 }
 
+/**
+ * The bar itself: a track filled to `usedPct` in the tone's theme colour. Every usage bar draws
+ * through this, so the Usage screen and the sidebar can never disagree on how a figure looks.
+ */
+export function UsageMeter({ usedPct, tone }: { usedPct: number; tone: UsageTone }) {
+  const fillStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [styles.fill, fillToneStyle(tone), { width: `${clampPct(usedPct)}%` }],
+    [tone, usedPct],
+  );
+  return (
+    <View style={styles.track}>
+      <View style={fillStyle} />
+    </View>
+  );
+}
+
 export function UsageWindowBar({ window }: { window: UsageWindow }) {
   const usedPct = usedPercent(window);
   const tone = window.tone ?? deriveTone(usedPct);
-
-  const fillWidth = clampPct(usedPct ?? 0);
-  const fillStyle = useMemo<StyleProp<ViewStyle>>(
-    () => [styles.fill, fillToneStyle(tone), { width: `${fillWidth}%` }],
-    [fillWidth, tone],
-  );
 
   const isAtRisk = window.runsOutAt != null && window.shortfallPct != null;
   const trailing = isAtRisk
@@ -47,9 +57,7 @@ export function UsageWindowBar({ window }: { window: UsageWindow }) {
           ) : null}
         </Text>
       </View>
-      <View style={styles.track}>
-        <View style={fillStyle} />
-      </View>
+      <UsageMeter usedPct={usedPct ?? 0} tone={tone} />
     </View>
   );
 }
