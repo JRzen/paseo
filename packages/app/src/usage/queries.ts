@@ -113,8 +113,14 @@ export function useHostUsage(serverId: string): { view: UsageView; refresh: () =
   return { view, refresh };
 }
 
-/** Usage reports for every connected host, grouped by host. */
-export function useUsageByHost(): {
+/**
+ * Usage reports for every connected host, grouped by host.
+ *
+ * `pollMs` re-reads the reports on an interval, for surfaces that stay on screen while you work.
+ * Polls never pass `forceRefresh`, so they are served from the daemon's five-minute cache and the
+ * source's API is asked at most once per cache period however often a client polls.
+ */
+export function useUsageByHost(options: { pollMs?: number } = {}): {
   groups: UsageHostGroup[];
   refresh: (serverId: string) => void;
 } {
@@ -142,6 +148,7 @@ export function useUsageByHost(): {
       enabled: host.isConnected && host.supportsUsage,
       dataShape: "list",
       staleTimeMs: REPORTS_STALE_TIME_MS,
+      refetchInterval: options.pollMs ?? false,
     })),
   );
   const groups = groupUsageByHost(
