@@ -1,4 +1,6 @@
-import { memo, useMemo } from "react";
+// The default import is load-bearing under vitest: the app's `jsx: "react-native"` tsconfig
+// leaves esbuild on the classic transform, so a rendered `.tsx` needs React in module scope.
+import React, { memo, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -7,19 +9,27 @@ import { useUsageByHost } from "./queries";
 import { UsageMeter } from "./window-bar";
 
 /**
+ * How often the strip re-reads usage while the sidebar is up. The daemon caches each report for
+ * five minutes, so polling faster would not show newer figures; this keeps a bar at most about six
+ * minutes behind the source. Polling pauses while the window is hidden.
+ */
+const SIDEBAR_USAGE_POLL_MS = 60_000;
+
+/**
  * Plan usage at a glance, at the foot of the sidebar: one thin bar per usage window (session,
  * weekly, ...) of every source,
  * drawn by the Usage screen's own `UsageMeter`, so it fills and colours exactly as that screen does. Bars only — the name and
  * figure are in each bar's tooltip, and pressing any bar opens the Usage screen.
  *
  * Renders nothing until a host has reported, so a host without usage support costs no space.
+ * It re-reads every minute, so the bars track usage while you work.
  */
 export const SidebarUsageBars = memo(function SidebarUsageBars({
   onPress,
 }: {
   onPress: () => void;
 }) {
-  const { groups } = useUsageByHost();
+  const { groups } = useUsageByHost({ pollMs: SIDEBAR_USAGE_POLL_MS });
   const bars = useMemo(() => selectUsageBars(groups), [groups]);
 
   if (bars.length === 0) {
